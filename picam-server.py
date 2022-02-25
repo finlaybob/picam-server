@@ -1,7 +1,7 @@
 #! /usr/bin/python3
 
-# Web streaming example
-# Source code from the official PiCamera package
+# Streaming and snapshot server 
+# Originally based on Source code from the official PiCamera package
 # http://picamera.readthedocs.io/en/latest/recipes2.html#web-streaming
 
 import io
@@ -47,7 +47,7 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
             self.send_header('Location', '/stream')
             self.end_headers()
         elif self.path == '/snap':
-            camera.capture(snap,format='jpeg',use_video_port=True)
+            camera.capture(snap,format='jpeg')
             self.send_response(200)
             self.send_header('Content-Type', 'image/jpeg')
             self.send_header('Content-Length', len(snap.frame))
