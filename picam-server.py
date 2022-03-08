@@ -1,8 +1,7 @@
 #! /usr/bin/python3
 
-# Streaming and snapshot server 
-# Originally based on Source code from the official PiCamera package
-# http://picamera.readthedocs.io/en/latest/recipes2.html#web-streaming
+# RPI Streaming and snapshot server 
+# Based on code from the official PiCamera package http://picamera.readthedocs.io/en/latest/recipes2.html#web-streaming
 
 from ast import For
 import io
@@ -45,13 +44,14 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
     
     def change_framerate(self,value):
         num = int(value)
-        if(num >= 1 and num <= 60):
+        if(num >= 1 and num <= 90):
             camera.stop_recording()
             camera.framerate = num
             camera.start_recording(output, format='mjpeg')
             self.send_response(202)
-            return f"set framerate to {value}"
-        return f"Couldn't set framerate to {value}"
+            return f"set framerate to {value}\n\r"
+        self.send_response(400)
+        return f"Couldn't set framerate to {value}\n\r"
 
     def change_resolution(self,value):
         h,v = map(int,value.split('x'))
@@ -61,8 +61,9 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
             camera.resolution = value
             camera.start_recording(output, format='mjpeg')
             self.send_response(202)
-            return f"set res to {value}"
-        return f"Couldn't set res to {value}"
+            return f"set res to {value}\n\r"
+        self.send_response(400)
+        return f"Couldn't set res to {value}\n\r"
 
     def handle_setter(self):
         # get params
@@ -75,8 +76,7 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
                 output += self.change_framerate(value)
             if(var == "res"):
                 output += self.change_resolution(value)
-            return output
-
+        return output
 
     def do_GET(self):
         if self.path == '/':
