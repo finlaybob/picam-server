@@ -4,6 +4,7 @@
 # Originally based on Source code from the official PiCamera package
 # http://picamera.readthedocs.io/en/latest/recipes2.html#web-streaming
 
+from ast import For
 import io
 import picamera
 import logging
@@ -41,31 +42,54 @@ class SnapshotOutput(object):
         return bufLen
 
 class StreamingHandler(server.BaseHTTPRequestHandler):
-    def do_POST(self):
-        pass
     
+    def change_framerate(self,value):
+        num = int(value)
+        if(num >= 1 and num <= 60):
+            camera.stop_recording()
+            camera.framerate = num
+            camera.start_recording(output, format='mjpeg')
+            self.send_response(202)
+            return f"set framerate to {value}"
+        return f"Couldn't set framerate to {value}"
+
+    def change_resolution(self,value):
+        h,v = map(int,value.split('x'))
+        #ensure sensible
+        if(h >= 640 and h <= 2592 and v >= 480 and v <= 1944):
+            camera.stop_recording()
+            camera.resolution = value
+            camera.start_recording(output, format='mjpeg')
+            self.send_response(202)
+            return f"set res to {value}"
+        return f"Couldn't set res to {value}"
+
+    def handle_setter(self):
+        # get params
+        trim = self.path.split('?')[1]
+        params = trim.split('&')
+        output = "";
+        for param in params:
+            var, value = param.split('=')
+            if(var == "fr"):
+                output += self.change_framerate(value)
+            if(var == "res"):
+                output += self.change_resolution(value)
+            return output
+
+
     def do_GET(self):
         if self.path == '/':
             self.send_response(301)
             self.send_header('Location', '/stream')
             self.end_headers()
-        elif self.path.startswith('/setfr='):
-            p = self.path
-            num = int(p.split('=')[-1])
-            if(num >= 1 and num <= 30):
-                camera.stop_recording()
-                camera.framerate = num
-                camera.start_recording(output, format='mjpeg')
-                content = f"Set framerate to {num}".encode('utf-8')
-                self.send_response(202)
-            else:
-                content = f"Can't set framerate to {num} (Must be 1-30)".encode('utf-8')
-                self.send_response(400)
-    
+        elif self.path.startswith('/set'):
+            content = self.handle_setter()
+            
             self.send_header('Content-Type', 'text/html')
             self.send_header('Content-Length', len(content))
             self.end_headers()
-            self.wfile.write(content)
+            self.wfile.write(content.encode(encoding='utf-8'))
         elif self.path == '/snap':
             camera.stop_recording()
             tmp = camera.resolution
@@ -109,9 +133,10 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
     daemon_threads = True
 
 
-with picamera.PiCamera(resolution='1920x1080', framerate=30) as camera:
+with picamera.PiCamera(resolution='1280x720', framerate=48) as camera:
     output = StreamingOutput()
     snap = SnapshotOutput()
+    camera.rotation = 180
     camera.start_recording(output, format='mjpeg')
     try:
         address = ('', 8000)
