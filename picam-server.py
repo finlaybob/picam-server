@@ -3,7 +3,6 @@
 # RPI Streaming and snapshot server 
 # Based on code from the official PiCamera package http://picamera.readthedocs.io/en/latest/recipes2.html#web-streaming
 
-from ast import For
 import io
 import picamera
 import logging
